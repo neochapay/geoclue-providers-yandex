@@ -12,7 +12,6 @@
 */
 
 #include "yandexprovider.h"
-#include "mlsdblogging.h"
 
 #include "yandexonlinelocator.h"
 #include "geoclue_adaptor.h"
@@ -110,7 +109,7 @@ YandexProvider::YandexProvider(QObject *parent)
     new GeoclueAdaptor(this);
     new PositionAdaptor(this);
 
-    qCDebug(lcGeoclueMlsdb) << "Mozilla Location Services geoclue plugin active";
+    qDebug() << "Mozilla Location Services geoclue plugin active";
     if (m_watchedServices.isEmpty()) {
         m_idleTimer.start(QuitIdleTime, this);
     }
@@ -125,7 +124,7 @@ YandexProvider::YandexProvider(QObject *parent)
     if (m_positioningEnabled) {
         cellularNetworkRegistrationChanged();
     } else {
-        qCDebug(lcGeoclueMlsdb) << "positioning is not currently enabled, idling";
+        qDebug() << "positioning is not currently enabled, idling";
     }
 }
 
@@ -152,33 +151,33 @@ bool YandexProvider::searchForCellIdLocation(const MlsdbUniqueCellId &uniqueCell
             quint32 magic = 0, expectedMagic = (quint32)0xc710cdb;
             in >> magic;
             if (magic != 0xc710cdb) {
-                qCDebug(lcGeoclueMlsdb) << "geoclue-mlsdb data file" << fname << "format unknown:" << magic << "expected:" << expectedMagic;
+                qDebug() << "geoclue-mlsdb data file" << fname << "format unknown:" << magic << "expected:" << expectedMagic;
                 continue; // ignore this file
             }
             qint32 version;
             in >> version;
             if (version != 3) {
-                qCDebug(lcGeoclueMlsdb) << "geoclue-mlsdb data file" << fname << "version unknown:" << version;
+                qDebug() << "geoclue-mlsdb data file" << fname << "version unknown:" << version;
                 continue; // ignore this file
             }
 
             QMap<MlsdbUniqueCellId, MlsdbCoords> perLcCellIdToLocations;
             in >> perLcCellIdToLocations;
             if (perLcCellIdToLocations.isEmpty()) {
-                qCDebug(lcGeoclueMlsdb) << "geoclue-mlsdb data file" << fname << "contained no cell locations!";
+                qDebug() << "geoclue-mlsdb data file" << fname << "contained no cell locations!";
             } else {
                 if (perLcCellIdToLocations.contains(uniqueCellId)) {
                     *coords = perLcCellIdToLocations.value(uniqueCellId);
-                    qCDebug(lcGeoclueMlsdb) << "geoclue-mlsdb data file" << fname << "contains the location of composed cell id:" << uniqueCellId.toString() << "->" << coords->lat << "," << coords->lon;
+                    qDebug() << "geoclue-mlsdb data file" << fname << "contains the location of composed cell id:" << uniqueCellId.toString() << "->" << coords->lat << "," << coords->lon;
                     return true; // found!
                 } else {
-                    qCDebug(lcGeoclueMlsdb) << "geoclue-mlsdb data file" << fname << "contains" << perLcCellIdToLocations.size() << "cell locations, but not for:" << uniqueCellId.toString();
+                    qDebug() << "geoclue-mlsdb data file" << fname << "contains" << perLcCellIdToLocations.size() << "cell locations, but not for:" << uniqueCellId.toString();
                 }
             }
         }
     }
 
-    qCDebug(lcGeoclueMlsdb) << "no geoclue-mlsdb data files contain the location of composed cell id:" << uniqueCellId.toString();
+    qDebug() << "no geoclue-mlsdb data files contain the location of composed cell id:" << uniqueCellId.toString();
     return false;
 }
 
@@ -192,7 +191,7 @@ void YandexProvider::AddReference()
     m_watcher->addWatchedService(service);
     m_watchedServices[service].referenceCount += 1;
     if (wasInactive) {
-        qCDebug(lcGeoclueMlsdb) << "new watched service, stopping idle timer.";
+        qDebug() << "new watched service, stopping idle timer.";
         m_idleTimer.stop();
     }
 
@@ -215,7 +214,7 @@ void YandexProvider::RemoveReference()
     }
 
     if (m_watchedServices.isEmpty()) {
-        qCDebug(lcGeoclueMlsdb) << "no watched services, starting idle timer.";
+        qDebug() << "no watched services, starting idle timer.";
         m_idleTimer.start(QuitIdleTime, this);
     }
 
@@ -257,13 +256,13 @@ int YandexProvider::GetPosition(int &timestamp, double &latitude, double &longit
                                 double &altitude, Accuracy &accuracy)
 {
     if (m_currentLocation.timestamp() > 0) {
-        qCDebug(lcGeoclueMlsdbPosition) << "GetPosition:"
+        qDebug() << "GetPosition:"
                                         << "timestamp:" << m_currentLocation.timestamp()
                                         << "latitude:" << m_currentLocation.latitude()
                                         << "longitude:" << m_currentLocation.longitude()
                                         << "accuracy:" << m_currentLocation.accuracy().horizontal();
     } else {
-        qCDebug(lcGeoclueMlsdbPosition) << "GetPosition: no valid current location known";
+        qDebug() << "GetPosition: no valid current location known";
     }
 
     PositionFields positionFields = NoPositionFields;
@@ -287,7 +286,7 @@ void YandexProvider::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == m_idleTimer.timerId()) {
         m_idleTimer.stop();
-        qCDebug(lcGeoclueMlsdb) << "have been idle for too long, quitting";
+        qDebug() << "have been idle for too long, quitting";
         qApp->quit();
     } else if (event->timerId() == m_fixLostTimer.timerId()) {
         m_fixLostTimer.stop();
@@ -295,16 +294,16 @@ void YandexProvider::timerEvent(QTimerEvent *event)
     } else if (event->timerId() == m_recalculatePositionTimer.timerId()) {
         const qint64 currTimestamp = QDateTime::currentMSecsSinceEpoch();
         if (!m_positioningEnabled) {
-            qCDebug(lcGeoclueMlsdb) << "positioning is disabled, preventing MLS calculation";
+            qDebug() << "positioning is disabled, preventing MLS calculation";
         } else if (m_currentLocation.timestamp() == 0
                 || ((currTimestamp - m_currentLocation.timestamp()) > ReuseInterval)
                 || m_signalUpdateCell || m_signalUpdateWlan) {
-            qCDebug(lcGeoclueMlsdb) << "calculating new position information";
+            qDebug() << "calculating new position information";
             m_signalUpdateCell = false;
             m_signalUpdateWlan = false;
             calculatePositionAndEmitLocation();
         } else {
-            qCDebug(lcGeoclueMlsdb) << "re-using old position information";
+            qDebug() << "re-using old position information";
             setLocation(m_currentLocation);
         }
     } else {
@@ -345,7 +344,7 @@ void YandexProvider::onlineWlanChanged()
 
 void YandexProvider::onlineLocationFound(double latitude, double longitude, double accuracy)
 {
-    qCDebug(lcGeoclueMlsdbPosition) << "Location from MLS online:" << latitude << longitude << accuracy;
+    qDebug() << "Location from MLS online:" << latitude << longitude << accuracy;
 
     Location deviceLocation;
     deviceLocation.setTimestamp(QDateTime::currentMSecsSinceEpoch());
@@ -361,7 +360,7 @@ void YandexProvider::onlineLocationFound(double latitude, double longitude, doub
 
 void YandexProvider::onlineLocationError(const QString &errorString)
 {
-    qCDebug(lcGeoclueMlsdbPosition) << "Cannot fetch position from online source:" << errorString
+    qDebug() << "Cannot fetch position from online source:" << errorString
                                     << ", falling back to offline source";
 
     // fall back to using offline position
@@ -375,7 +374,7 @@ QList<YandexProvider::CellPositioningData> YandexProvider::seenCellIds() const
         return cells;
     }
 
-    qCDebug(lcGeoclueMlsdbPosition) << "have" << m_cellWatcher->cells().size() << "neighbouring cells";
+    qDebug() << "have" << m_cellWatcher->cells().size() << "neighbouring cells";
     quint32 maxNeighborSignalStrength = 1;
     QSet<MlsdbUniqueCellId> seenCellIds;
     Q_FOREACH (const QSharedPointer<QOfonoExtCell> &c, m_cellWatcher->cells()) {
@@ -398,14 +397,14 @@ QList<YandexProvider::CellPositioningData> YandexProvider::seenCellIds() const
             locationCode = static_cast<quint32>(c->tac());
             cellId = static_cast<quint32>(c->ci());
         } else {
-            qCDebug(lcGeoclueMlsdbPosition) << "ignoring neighbour cell with no cell id with type:" << c->type()
+            qDebug() << "ignoring neighbour cell with no cell id with type:" << c->type()
                                             << " mcc:" << c->mcc() << " mnc:" << c->mnc() << " lac:" << c->lac()
                                             << " tac:" << c->tac() << " pci:" << c->pci() << " psc:" << c->psc();
             continue;
         }
         cell.uniqueCellId = MlsdbUniqueCellId(cellType, cellId, locationCode, mcc, mnc);
         if (!seenCellIds.contains(cell.uniqueCellId)) {
-            qCDebug(lcGeoclueMlsdbPosition) << "have neighbour cell:" << cell.uniqueCellId.toString()
+            qDebug() << "have neighbour cell:" << cell.uniqueCellId.toString()
                                             << "with strength:" << c->signalStrength();
             cell.signalStrength = c->signalStrength();
             if (cell.signalStrength > maxNeighborSignalStrength) {
@@ -452,14 +451,14 @@ void YandexProvider::updateLocationFromCells(const QList<CellPositioningData> &c
     }
 
     if (cellLocations.size() == 0) {
-        qCDebug(lcGeoclueMlsdbPosition) << "no cell id data to calculate position from";
+        qDebug() << "no cell id data to calculate position from";
         return;
     } else if (cellLocations.size() == 1) {
-        qCDebug(lcGeoclueMlsdbPosition) << "only one cell id datum to calculate position from, position will be extremely inaccurate";
+        qDebug() << "only one cell id datum to calculate position from, position will be extremely inaccurate";
     } else if (cellLocations.size() == 2) {
-        qCDebug(lcGeoclueMlsdbPosition) << "only two cell id data to calculate position from, position will be highly inaccurate";
+        qDebug() << "only two cell id data to calculate position from, position will be highly inaccurate";
     } else {
-        qCDebug(lcGeoclueMlsdbPosition) << "calculating position from" << cellLocations.size() << "cell id data";
+        qDebug() << "calculating position from" << cellLocations.size() << "cell id data";
     }
 
     // now use the current cell and neighboringcell information to triangulate our position.
@@ -471,11 +470,11 @@ void YandexProvider::updateLocationFromCells(const QList<CellPositioningData> &c
             double weight = (((double)cell.signalStrength) / totalSignalStrength);
             deviceLatitude += (weight * cellCoords.lat);
             deviceLongitude += (weight * cellCoords.lon);
-            qCDebug(lcGeoclueMlsdbPosition) << "have cell:" << cell.uniqueCellId.toString()
+            qDebug() << "have cell:" << cell.uniqueCellId.toString()
                                             << "with position:" << cellCoords.lat << "," << cellCoords.lon
                                             << "with strength:" << ((double)cell.signalStrength / totalSignalStrength);
         } else {
-            qCDebug(lcGeoclueMlsdbPosition) << "do not know position of cell with id:" << cell.uniqueCellId.toString();
+            qDebug() << "do not know position of cell with id:" << cell.uniqueCellId.toString();
         }
     }
 
@@ -496,8 +495,8 @@ void YandexProvider::updateLocationFromCells(const QList<CellPositioningData> &c
     if (m_currentLocation.timestamp() != 0
             && (QDateTime::currentMSecsSinceEpoch() - m_currentLocation.timestamp()) < FallbackInterval
             && m_currentLocation.accuracy().horizontal() < deviceLocation.accuracy().horizontal()) {
-        qCDebug(lcGeoclueMlsdb) << "re-using old position information due to better accuracy";
-        qCDebug(lcGeoclueMlsdb) << "preferring:" << m_currentLocation.latitude() << ","
+        qDebug() << "re-using old position information due to better accuracy";
+        qDebug() << "preferring:" << m_currentLocation.latitude() << ","
                                                  << m_currentLocation.longitude() << ","
                                                  << m_currentLocation.accuracy().horizontal()
                                 << "over:" << deviceLocation.latitude() << ","
@@ -511,7 +510,7 @@ void YandexProvider::updateLocationFromCells(const QList<CellPositioningData> &c
 
 void YandexProvider::setLocation(const Location &location)
 {
-    qCDebug(lcGeoclueMlsdbPosition) << "setting current location to:"
+    qDebug() << "setting current location to:"
                                     << "ts:" << location.timestamp() << ","
                                     << "lat:" << location.latitude() << "," << "lon:" << location.longitude() << ","
                                     << "accuracy:" << location.accuracy().horizontal();
@@ -521,7 +520,7 @@ void YandexProvider::setLocation(const Location &location)
         m_fixLostTimer.start(FixTimeout, this);
         m_lastLocation = m_currentLocation;
     } else {
-        qCDebug(lcGeoclueMlsdbPosition) << "location invalid, lost positioning fix";
+        qDebug() << "location invalid, lost positioning fix";
         m_lastLocation = Location(); // lost fix, reset last location also.
     }
 
@@ -534,7 +533,7 @@ void YandexProvider::serviceUnregistered(const QString &service)
     m_watchedServices.remove(service);
     m_watcher->removeWatchedService(service);
     if (m_watchedServices.isEmpty()) {
-        qCDebug(lcGeoclueMlsdb) << "no watched services, starting idle timer.";
+        qDebug() << "no watched services, starting idle timer.";
         m_idleTimer.start(QuitIdleTime, this);
     }
 
@@ -557,47 +556,47 @@ void YandexProvider::updatePositioningEnabled()
                &cellDataAllowed,
                &wlanDataAllowed);
 
-    qCDebug(lcGeoclueMlsdb) << "positioning is" << (positioningEnabled ? "enabled" : "disabled");
-    qCDebug(lcGeoclueMlsdb) << "device-local cell triangulation positioning is" << (cellPositioningEnabled ? "enabled" : "disabled");
-    qCDebug(lcGeoclueMlsdb) << "mls online service positioning is" << (m_onlinePositioningEnabled ? "enabled" : "disabled");
+    qDebug() << "positioning is" << (positioningEnabled ? "enabled" : "disabled");
+    qDebug() << "device-local cell triangulation positioning is" << (cellPositioningEnabled ? "enabled" : "disabled");
+    qDebug() << "mls online service positioning is" << (m_onlinePositioningEnabled ? "enabled" : "disabled");
 
-    qCDebug(lcGeoclueMlsdb) << "now checking MDM data source restrictions...";
+    qDebug() << "now checking MDM data source restrictions...";
 
     if (m_onlineDataAllowed != onlineDataAllowed) {
         m_onlineDataAllowed = onlineDataAllowed;
     }
     if (m_onlineDataAllowed) {
-        qCDebug(lcGeoclueMlsdb) << "allowed to use online data to determine position";
+        qDebug() << "allowed to use online data to determine position";
     } else {
-        qCDebug(lcGeoclueMlsdb) << "not allowed to use online data to determine position";
+        qDebug() << "not allowed to use online data to determine position";
     }
 
     if (m_cellDataAllowed != cellDataAllowed) {
         m_cellDataAllowed = cellDataAllowed;
         if (!m_cellWatcher && m_cellDataAllowed) {
-            qCDebug(lcGeoclueMlsdb) << "listening for cell data changes";
+            qDebug() << "listening for cell data changes";
             m_cellWatcher = new QOfonoExtCellWatcher(this);
             connect(m_cellWatcher, &QOfonoExtCellWatcher::cellsChanged,
                     this, &YandexProvider::cellularNetworkRegistrationChanged);
         } else if (m_cellWatcher && !m_cellDataAllowed) {
-            qCDebug(lcGeoclueMlsdb) << "no longer listening for cell data changes";
+            qDebug() << "no longer listening for cell data changes";
             m_cellWatcher->deleteLater();
             m_cellWatcher = Q_NULLPTR;
         }
     }
     if (m_cellDataAllowed) {
-        qCDebug(lcGeoclueMlsdb) << "allowed to use adjacent cell id data to determine position";
+        qDebug() << "allowed to use adjacent cell id data to determine position";
     } else {
-        qCDebug(lcGeoclueMlsdb) << "not allowed to use adjacent cell id data to determine position";
+        qDebug() << "not allowed to use adjacent cell id data to determine position";
     }
 
     if (m_wlanDataAllowed != wlanDataAllowed) {
         m_wlanDataAllowed = wlanDataAllowed;
     }
     if (m_wlanDataAllowed) {
-        qCDebug(lcGeoclueMlsdb) << "allowed to use wlan data to determine position";
+        qDebug() << "allowed to use wlan data to determine position";
     } else {
-        qCDebug(lcGeoclueMlsdb) << "not allowed to use wlan data to determine position";
+        qDebug() << "not allowed to use wlan data to determine position";
     }
 
     if (m_mlsdbOnlineLocator) {
@@ -611,11 +610,11 @@ void YandexProvider::updatePositioningEnabled()
     }
 
     if (enabled) {
-        qCDebug(lcGeoclueMlsdb) << "positioning has been enabled";
+        qDebug() << "positioning has been enabled";
         m_positioningEnabled = true;
         startPositioningIfNeeded();
     } else {
-        qCDebug(lcGeoclueMlsdb) << "positioning has been disabled";
+        qDebug() << "positioning has been disabled";
         m_positioningEnabled = false;
         setLocation(Location());
         stopPositioningIfNeeded();
@@ -659,7 +658,7 @@ void YandexProvider::startPositioningIfNeeded()
 
     m_idleTimer.stop();
 
-    qCDebug(lcGeoclueMlsdb) << "Starting positioning";
+    qDebug() << "Starting positioning";
     m_positioningStarted = true;
     calculatePositionAndEmitLocation();
     quint32 updateInterval = minimumRequestedUpdateInterval();
@@ -676,7 +675,7 @@ void YandexProvider::stopPositioningIfNeeded()
     if (m_positioningEnabled && !m_watchedServices.isEmpty())
         return;
 
-    qCDebug(lcGeoclueMlsdb) << "Stopping positioning";
+    qDebug() << "Stopping positioning";
     m_positioningStarted = false;
     setStatus(StatusUnavailable);
     m_fixLostTimer.stop();

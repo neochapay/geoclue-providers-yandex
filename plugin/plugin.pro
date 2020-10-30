@@ -37,14 +37,12 @@ geoclue_provider.path = /usr/share/geoclue-providers
 
 include (../common/common.pri)
 HEADERS += \
-    mlsdblogging.h \
     yandexonlinelocator.h \
     locationtypes.h \
     yandexprovider.h
 
 SOURCES += \
     main.cpp \
-    mlsdblogging.cpp \
     yandexonlinelocator.cpp \
     yandexprovider.cpp
 

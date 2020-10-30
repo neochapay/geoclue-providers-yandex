@@ -12,7 +12,6 @@
 */
 
 #include "yandexonlinelocator.h"
-#include "mlsdblogging.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -81,7 +80,7 @@ YandexOnlineLocator::YandexOnlineLocator(QObject *parent)
     m_fallbacksLacf = settings.value("MLS/FALLBACKS_LACF", true).toBool();
     m_fallbacksIpf = settings.value("MLS/FALLBACKS_IPF", true).toBool();
 
-    qCDebug(lcGeoclueMlsdb) << "MLS_FALLBACKS_LACF" << m_fallbacksLacf
+    qDebug() << "MLS_FALLBACKS_LACF" << m_fallbacksLacf
                             << "MLS_FALLBACKS_IPF" << m_fallbacksIpf;
 
     connect(m_nam, SIGNAL(finished(QNetworkReply*)), SLOT(requestOnlineLocationFinished(QNetworkReply*)));
@@ -149,12 +148,12 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
 
     if (map.isEmpty()) {
         // no field data(cell, wifi) available
-        qCDebug(lcGeoclueMlsdbOnline) << "No field data(cell, wifi) available for MLS online request";
+        qDebug() << "No field data(cell, wifi) available for MLS online request";
     } else if (!map.contains(QStringLiteral("wifiAccessPoints")) && waitForWlanInfo) {
         // it can take some time to receive wlan network info.
         // the MLS online lookup is far more accurate if we have some wlan network info to provide.
         // so, if we have no wlan info, and this was the first request, don't do an online request yet.
-        qCDebug(lcGeoclueMlsdbOnline) << "No wifi data available for MLS online request, postponing";
+        qDebug() << "No wifi data available for MLS online request, postponing";
         waitForWlanInfo = false;
     } else {
         map.unite(globalFields());
@@ -191,7 +190,7 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
 
             if (backOffFactor == 1 || intervalExceeded) {
                 // return the query data for the request.
-                qCDebug(lcGeoclueMlsdbOnline) << "Performing MLS online query due to conditions:"
+                qDebug() << "Performing MLS online query due to conditions:"
                                               << "first:" << firstTimeQuery
                                               << "interval:" << intervalExceeded
                                               << "info:" << moreInfo
@@ -202,10 +201,10 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
                 }
                 return qMakePair(currDt, map);
             } else {
-                qCDebug(lcGeoclueMlsdbOnline) << "Locally throttling online MLS query due to interval";
+                qDebug() << "Locally throttling online MLS query due to interval";
             }
         } else {
-            qCDebug(lcGeoclueMlsdbOnline) << "No required conditions true for online MLS query!";
+            qDebug() << "No required conditions true for online MLS query!";
         }
     }
 
@@ -215,17 +214,17 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
 bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &query)
 {
     if (query.first.isNull() || query.second.isEmpty()) {
-        qCDebug(lcGeoclueMlsdbOnline) << "Empty query data provided";
+        qDebug() << "Empty query data provided";
         return false;
     }
 
     if (!loadMlsKey()) {
-        qCDebug(lcGeoclueMlsdbOnline) << "Unable to load MLS API key";
+        qDebug() << "Unable to load MLS API key";
         return false;
     }
 
     if (m_currentReply) {
-        qCDebug(lcGeoclueMlsdbOnline) << "Previous request still in progress";
+        qDebug() << "Previous request still in progress";
         return true;
     }
 
@@ -238,7 +237,7 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
             qint64 diff = failureTime.msecsTo(currentTime);
 
             if (diff >= 0 && diff < 12*60*60*1000) {
-                qCDebug(lcGeoclueMlsdbOnline) << "Less than 12 hour old key failure, refusing a new try";
+                qDebug() << "Less than 12 hour old key failure, refusing a new try";
                 return false;
             }
         }
@@ -251,18 +250,18 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
     const QByteArray json = doc.toJson();
     m_currentReply = m_nam->post(req, json);
     if (m_currentReply->error() != QNetworkReply::NoError) {
-        qCDebug(lcGeoclueMlsdbOnline) << "POST request failed:" << m_currentReply->errorString();
+        qDebug() << "POST request failed:" << m_currentReply->errorString();
         return false;
     }
     m_replyTimer.start();
-    qCDebug(lcGeoclueMlsdbOnline) << "Sent request at:" << QDateTime::currentDateTimeUtc().toTime_t() << "with data:" << json;
+    qDebug() << "Sent request at:" << QDateTime::currentDateTimeUtc().toTime_t() << "with data:" << json;
     return true;
 }
 
 void YandexOnlineLocator::requestOnlineLocationFinished(QNetworkReply *reply)
 {
     if (m_currentReply != reply) {
-        qCDebug(lcGeoclueMlsdbOnline) << "Received finished signal for unknown request reply!";
+        qDebug() << "Received finished signal for unknown request reply!";
         return;
     }
 
@@ -275,7 +274,7 @@ void YandexOnlineLocator::requestOnlineLocationFinished(QNetworkReply *reply)
         if (m_currentReply->error() == QNetworkReply::NoError) {
             m_keyFailureTime.unset();
 
-            qCDebug(lcGeoclueMlsdbOnline) << "MLS response:" << data;
+            qDebug() << "MLS response:" << data;
             if (!readServerResponseData(data, &errorString)) {
                 emit error(errorString);
             }
@@ -291,7 +290,7 @@ void YandexOnlineLocator::requestOnlineLocationFinished(QNetworkReply *reply)
 
 void YandexOnlineLocator::timeoutReply()
 {
-    qCDebug(lcGeoclueMlsdbOnline) << "Request timed out at:" << QDateTime::currentDateTimeUtc().toTime_t();
+    qDebug() << "Request timed out at:" << QDateTime::currentDateTimeUtc().toTime_t();
     m_currentReply->setProperty("timedOut", QVariant::fromValue<bool>(true));
     m_currentReply->abort(); // will emit finished, the finished slot will deleteLater().
 }
@@ -350,7 +349,7 @@ void YandexOnlineLocator::checkError(const QByteArray &data)
     int errorCode = json.object().value(QLatin1String("error")).toObject().value(QLatin1String("code")).toInt();
 
     if (errorCode == 400) {
-        qCWarning(lcGeoclueMlsdbOnline) << "Mozilla Location Service failed due to invalid API key, disabling the locator for 12 hours";
+        qWarning() << "Mozilla Location Service failed due to invalid API key, disabling the locator for 12 hours";
         m_keyFailureTime.set(QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
     }
 }
