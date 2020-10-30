@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.freedesktop.Geoclue.Providers.Yandex
+Requires=booster-qt5.service
+Exec=/usr/bin/invoker --type=qt5 /usr/libexec/geoclue-yandex
