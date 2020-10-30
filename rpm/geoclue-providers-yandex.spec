@@ -16,7 +16,6 @@ BuildRequires: pkgconfig(connman-qt5)
 BuildRequires: pkgconfig(qt5-boostable)
 BuildRequires: pkgconfig(mlite5)
 Requires: mapplauncherd-qt5
-Requires: %{name}-agreements
 
 %description
 %{summary}.
@@ -39,8 +38,7 @@ install -m 644 -p %{SOURCE1} %{buildroot}%{_datadir}/mapplauncherd/privileges.d/
 
 %files
 %defattr(-,root,root,-)
-%{_libexecdir}/geoclue-mlsdb
+%{_libexecdir}/geoclue-yandex
 %{_datadir}/mapplauncherd/privileges.d/*
-%dir %{_datadir}/geoclue-provider-yandex
 %{_datadir}/dbus-1/services/org.freedesktop.Geoclue.Providers.Yandex.service
 %{_datadir}/geoclue-providers/geoclue-yandex.provider
