@@ -30,6 +30,7 @@
 #include <qofonoextmodemmanager.h>
 #include <networkmanager.h>
 #include <networkservice.h>
+#include <QFile>
 
 #define REQUEST_REPLY_TIMEOUT_INTERVAL 10000 /* 10 seconds */
 
@@ -218,7 +219,7 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
         return false;
     }
 
-    if (!loadMlsKey()) {
+    if (!loadYandexKey()) {
         qDebug() << "Unable to load MLS API key";
         return false;
     }
@@ -243,7 +244,7 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
         }
     }
 
-    QNetworkRequest req(QUrl("https://location.services.mozilla.com/v1/geolocate?key=" + m_mlsKey));
+    QNetworkRequest req(QUrl("https://location.services.mozilla.com/v1/geolocate?key=" + m_yandexKey));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     const QJsonDocument doc = QJsonDocument::fromVariant(query.second);
@@ -494,8 +495,27 @@ void YandexOnlineLocator::setupSimManager()
 }
 
 
-bool YandexOnlineLocator::loadMlsKey()
+bool YandexOnlineLocator::loadYandexKey()
 {
-    return false;
-//TODO - add loading key
+    QFile keyFile("/etc/yandex.key");
+    if(!keyFile.exists()) {
+        qWarning() << "Key file not exists. Read documentation";
+        return false;
+    }
+
+    if(!keyFile.open(QIODevice::ReadOnly)) {
+        qWarning() << "Can't read key file";
+        return false;
+    }
+
+    QTextStream in(&keyFile);
+    QString key = in.readAll();
+
+    if(key.isEmpty()) {
+        qWarning() << "Key file is empty";
+        return false;
+    }
+
+    m_yandexKey = key;
+    return true;
 }

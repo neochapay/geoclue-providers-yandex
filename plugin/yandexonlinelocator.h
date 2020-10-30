@@ -75,7 +75,7 @@ private:
     QVariantMap fallbackFields() const;
 
     void setupSimManager();
-    bool loadMlsKey();
+    bool loadYandexKey();
 
     QNetworkAccessManager *m_nam;
     QOfonoExtModemManager *m_modemManager;
@@ -85,7 +85,7 @@ private:
     QTimer m_replyTimer;
 
     QVector<NetworkService*> m_wlanServices;
-    QString m_mlsKey;
+    QString m_yandexKey;
 
     bool m_fallbacksLacf;
     bool m_fallbacksIpf;
