@@ -1,5 +1,5 @@
 Name: geoclue-provider-yandex
-Version: 0.1.2
+Version: 0.2.0
 Release: 1
 Summary: Geoinformation Service from Yandex Location Services Database Provider
 Group: System/Libraries
