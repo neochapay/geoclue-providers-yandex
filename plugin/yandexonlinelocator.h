@@ -50,7 +50,7 @@ public:
     QPair<QDateTime, QVariantMap> buildLocationQuery(
         const QList<YandexProvider::CellPositioningData> &cells,
         const QPair<QDateTime, QVariantMap> &oldQuery) const;
-    bool findLocation(const QPair<QDateTime, QVariantMap> &request);
+    bool findLocation();
 
 signals:
     void locationFound(double latitude, double longitude, double accuracy);
@@ -71,8 +71,8 @@ private:
 
     QVariantMap globalFields() const;
     QVariantMap cellTowerFields(const QList<YandexProvider::CellPositioningData> &cells) const;
-    QVariantMap wlanAccessPointFields() const;
     QVariantMap fallbackFields() const;
+    QVariantList wlanAccessPointFields() const;
 
     void setupSimManager();
     bool loadYandexKey();

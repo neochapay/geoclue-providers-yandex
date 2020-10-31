@@ -328,10 +328,9 @@ void YandexProvider::calculatePositionAndEmitLocation()
             connect(m_mlsdbOnlineLocator, &YandexOnlineLocator::error,
                     this, &YandexProvider::onlineLocationError);
         }
-        const QPair<QDateTime, QVariantMap> query = m_mlsdbOnlineLocator->buildLocationQuery(
-                cellIds, m_previousQuery);
-        if (m_mlsdbOnlineLocator->findLocation(query)) {
-            m_previousQuery = query;
+
+        if (m_mlsdbOnlineLocator->findLocation()) {
+            //m_previousQuery = query;
             return;
         }
     }

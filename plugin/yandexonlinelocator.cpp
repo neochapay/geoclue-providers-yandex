@@ -31,6 +31,7 @@
 #include <networkmanager.h>
 #include <networkservice.h>
 #include <QFile>
+#include <QJsonArray>
 
 #define REQUEST_REPLY_TIMEOUT_INTERVAL 10000 /* 10 seconds */
 
@@ -145,7 +146,7 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
     const QDateTime currDt = QDateTime::currentDateTimeUtc();
     QVariantMap map;
     map.unite(cellTowerFields(cells));
-    map.unite(wlanAccessPointFields());
+//    map.unite(wlanAccessPointFields());
 
     if (map.isEmpty()) {
         // no field data(cell, wifi) available
@@ -212,7 +213,7 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
     return qMakePair(QDateTime(), QVariantMap());
 }
 
-bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &query)
+bool YandexOnlineLocator::findLocation()
 {
     if (!loadYandexKey()) {
         qDebug() << "Unable to load Yandex API key";
@@ -249,8 +250,14 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
     common["api_key"] = m_yandexKey;
     doc.insert("common",common);
 
-    /*TODO ADD CELLID and WiFi*/
-    Q_UNUSED(query);
+    QVariantList wlan = wlanAccessPointFields();
+    if(wlan.count() > 0) {
+        QJsonArray wlanList;
+        for (int i = 0; i < wlan.size(); i++) {
+            wlanList.append(QJsonValue::fromVariant(wlan[i]));
+        }
+        doc.insert("wifi_networks", wlanList);
+    }
 
     const QByteArray json = QJsonDocument(doc).toJson();
 
@@ -432,11 +439,10 @@ QVariantMap YandexOnlineLocator::cellTowerFields(const QList<YandexProvider::Cel
     return map;
 }
 
-QVariantMap YandexOnlineLocator::wlanAccessPointFields() const
+QVariantList YandexOnlineLocator::wlanAccessPointFields() const
 {
-    QVariantMap map;
+    QVariantList wifiInfoList;
     if (!m_wlanServices.isEmpty()) {
-        QVariantList wifiInfoList;
         for (int i = 0; i < m_wlanServices.count(); i++) {
             NetworkService *service = m_wlanServices.at(i);
             if (service->hidden() || service->name().endsWith(QStringLiteral("_nomap"))) {
@@ -452,20 +458,14 @@ QVariantMap YandexOnlineLocator::wlanAccessPointFields() const
                 continue;
             }
             QVariantMap wifiInfo;
-            wifiInfo["macAddress"] = service->bssid();
-            wifiInfo["frequency"] = service->frequency();
-            wifiInfo["signalStrength"] = service->strength();
+            wifiInfo["mac"] = service->bssid();
+            wifiInfo["signal_strength"] = service->strength();
+            wifiInfo["age"] = 500;
             wifiInfoList.append(wifiInfo);
-        }
-        if (wifiInfoList.size() >= 2) {
-            // "The minimum of two networks is a mandatory privacy
-            // restriction for Bluetooth and WiFi based location services."
-            // https://mozilla.github.io/ichnaea/api/geolocate.html#field-definition
-            map["wifiAccessPoints"] = wifiInfoList;
         }
     }
 
-    return map;
+    return wifiInfoList;
 }
 
 QVariantMap YandexOnlineLocator::fallbackFields() const
