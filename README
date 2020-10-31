@@ -7,7 +7,7 @@ likely position of the device.
 YOU MUST GET API KEY YOURSELF
 
 1. Go to https://yandex.ru/dev/locator/ and get key
-2. Put it into /etc/yandex.key
+2. Save it to /etc/yandex.key
 3. Enable mls into settings
 
 To get debug output from the plugin, run it via:
