@@ -1,8 +1,14 @@
 This geoclue plugin provides position updates based upon cell tower
-signal strength data.  It looks up the location of nearby cell towers
-from the Mozilla Location Services Database file which is shipped
+signal strength data and IP.  It looks up the location of nearby cell
+towers from the Yandex Location Services Database file which is shipped
 on the device, and does a crude triangulation to determine the
 likely position of the device.
 
+YOU MUST GET API KEY YOURSELF
+
+1. Go to https://yandex.ru/dev/locator/ and get key
+2. Put it into /etc/yandex.key
+3. Enable mls into settings
+
 To get debug output from the plugin, run it via:
-QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/libexec/geoclue-mlsdb
+QT_LOGGING_RULES="*.debug=true" devel-su -p /usr/libexec/geoclue-yandex
