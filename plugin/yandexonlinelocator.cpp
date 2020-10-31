@@ -214,13 +214,8 @@ QPair<QDateTime, QVariantMap> YandexOnlineLocator::buildLocationQuery(
 
 bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &query)
 {
-    if (query.first.isNull() || query.second.isEmpty()) {
-        qDebug() << "Empty query data provided";
-        return false;
-    }
-
     if (!loadYandexKey()) {
-        qDebug() << "Unable to load MLS API key";
+        qDebug() << "Unable to load Yandex API key";
         return false;
     }
 
@@ -244,12 +239,22 @@ bool YandexOnlineLocator::findLocation(const QPair<QDateTime, QVariantMap> &quer
         }
     }
 
-    QNetworkRequest req(QUrl("https://location.services.mozilla.com/v1/geolocate?key=" + m_yandexKey));
+    QNetworkRequest req(QUrl("http://api.lbs.yandex.net/geolocation"));
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    const QJsonDocument doc = QJsonDocument::fromVariant(query.second);
-    const QByteArray json = doc.toJson();
-    m_currentReply = m_nam->post(req, json);
+    QJsonObject doc;
+
+    QJsonObject common;
+    common["version"] = "1.0";
+    common["api_key"] = m_yandexKey;
+    doc.insert("common",common);
+
+    /*TODO ADD CELLID and WiFi*/
+    Q_UNUSED(query);
+
+    const QByteArray json = QJsonDocument(doc).toJson();
+
+    m_currentReply = m_nam->post(req, "json="+json);
     if (m_currentReply->error() != QNetworkReply::NoError) {
         qDebug() << "POST request failed:" << m_currentReply->errorString();
         return false;
@@ -311,7 +316,7 @@ bool YandexOnlineLocator::readServerResponseData(const QByteArray &data, QString
     }
 
     QJsonObject obj = json.object();
-    QVariantMap location = obj.value("location").toVariant().toMap();
+    QVariantMap location = obj.value("position").toVariant().toMap();
     if (location.isEmpty()) {
         *errorString = "JSON parse error: no location data found in " + data;
         return false;
@@ -319,15 +324,18 @@ bool YandexOnlineLocator::readServerResponseData(const QByteArray &data, QString
 
     bool latitudeOk = false;
     bool longitudeOk = false;
-    double latitude = location["lat"].toDouble(&latitudeOk);
-    double longitude = location["lng"].toDouble(&longitudeOk);
+    double latitude = location["latitude"].toDouble(&latitudeOk);
+    double longitude = location["longitude"].toDouble(&longitudeOk);
     if (!latitudeOk || !longitudeOk) {
         *errorString = "JSON parse error: latitude or longitude not readable in " + data;
         return false;
     }
 
     bool accuracyOk = false;
-    double accuracy = obj.value("accuracy").toVariant().toDouble(&accuracyOk);
+
+    // Yandex locator dont have accuracy
+    double accuracy = 0.0;
+    //double accuracy = obj.value("accuracy").toVariant().toDouble(&accuracyOk);
     if (!accuracyOk) {
         accuracy = -1;
     }

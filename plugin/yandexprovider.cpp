@@ -109,7 +109,7 @@ YandexProvider::YandexProvider(QObject *parent)
     new GeoclueAdaptor(this);
     new PositionAdaptor(this);
 
-    qDebug() << "Mozilla Location Services geoclue plugin active";
+    qDebug() << "Yandex Location Services geoclue plugin active";
     if (m_watchedServices.isEmpty()) {
         m_idleTimer.start(QuitIdleTime, this);
     }
@@ -284,10 +284,13 @@ int YandexProvider::GetPosition(int &timestamp, double &latitude, double &longit
 
 void YandexProvider::timerEvent(QTimerEvent *event)
 {
+    //DEBUG
+    calculatePositionAndEmitLocation();
+
     if (event->timerId() == m_idleTimer.timerId()) {
         m_idleTimer.stop();
         qDebug() << "have been idle for too long, quitting";
-        qApp->quit();
+//        qApp->quit();
     } else if (event->timerId() == m_fixLostTimer.timerId()) {
         m_fixLostTimer.stop();
         setStatus(StatusAcquiring);
