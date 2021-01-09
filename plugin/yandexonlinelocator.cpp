@@ -340,9 +340,7 @@ bool YandexOnlineLocator::readServerResponseData(const QByteArray &data, QString
 
     bool accuracyOk = false;
 
-    // Yandex locator dont have accuracy
-    double accuracy = 0.0;
-    //double accuracy = obj.value("accuracy").toVariant().toDouble(&accuracyOk);
+    double accuracy = location["precision"].toDouble(&accuracyOk);
     if (!accuracyOk) {
         accuracy = -1;
     }
